@@ -1,0 +1,19 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pagamento-pod-kill
+  namespace: app
+  labels:
+    app.kubernetes.io/name: pagamento
+    chaos-test: "true"
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    namespaces:
+      - app
+    labelSelectors:
+      app: pagamento
+  duration: "60s"
+  scheduler:
+    cron: "@every 5m"
