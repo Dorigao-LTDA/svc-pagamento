@@ -1,6 +1,6 @@
 package com.dorigao.pagamento;
 
-import com.dorigao.pagamento.controller.PagamentoController.CriarPagamentoDtoRequest;
+import com.dorigao.pagamento.controller.PagamentoController.CriarPagamentoRequest;
 import com.dorigao.pagamento.service.PagamentoService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,19 +44,17 @@ class PagamentoApplicationTests {
         mockMvc.perform(get("/api/pagamento"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThan(0))))
-                .andExpect(jsonPath("$[0].nome", notNullValue()))
-                .andExpect(jsonPath("$[0].id", notNullValue()));
+                .andExpect(jsonPath("$[0].id", notNullValue()))
+                .andExpect(jsonPath("$[0].valor", notNullValue()));
     }
 
     @Test
     void shouldCreatePagamentoDto() throws Exception {
         String json = """
             {
-                "nome": "PagamentoDto Teste",
-                "descricao": "Descrição do teste",
-                "preco": 99.90,
-                "categoria": "Testes",
-                "quantidadeEstoque": 10
+                "pedidoId": "550e8400-e29b-41d4-a716-446655440000",
+                "valor": 99.90,
+                "metodoPagamento": "PIX"
             }
             """;
 
@@ -64,8 +62,9 @@ class PagamentoApplicationTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.nome").value("PagamentoDto Teste"))
-                .andExpect(jsonPath("$.preco").value(99.90))
+                .andExpect(jsonPath("$.pedidoId").value("550e8400-e29b-41d4-a716-446655440000"))
+                .andExpect(jsonPath("$.valor").value(99.90))
+                .andExpect(jsonPath("$.metodoPagamento").value("PIX"))
                 .andExpect(jsonPath("$.id", notNullValue()));
     }
 

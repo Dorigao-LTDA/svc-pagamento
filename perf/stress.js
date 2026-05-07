@@ -1,4 +1,4 @@
-// Spike test — pico repentino de tráfego
+// Stress test — rampa progressiva para encontrar ponto de quebra
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate } from 'k6/metrics';
@@ -8,18 +8,18 @@ const errors = new Rate('pagamento_errors');
 
 export const options = {
   thresholds: {
-    http_req_failed: ['rate<0.10'],  // Mais tolerante em spike
-    http_req_duration: ['p(99)<3000'],
+    http_req_failed: ['rate<0.05'],
+    http_req_duration: ['p(99)<2000'],
   },
   scenarios: {
-    spike: {
+    stress: {
       executor: 'ramping-vus',
       startVUs: 1,
       stages: [
-        { duration: '1m', target: 10 },
-        { duration: '30s', target: 200 },
-        { duration: '2m', target: 200 },
-        { duration: '1m30s', target: 10 },
+        { duration: '2m', target: 10 },
+        { duration: '5m', target: 50 },
+        { duration: '2m', target: 10 },
+        { duration: '1m', target: 100 },
       ],
       gracefulStop: '30s',
     },
@@ -27,10 +27,10 @@ export const options = {
 };
 
 export default function () {
-  const res = http.get(`${BASE_URL}/api/pagamento`, { tags: { operation: 'list' } });
-  check(res, {
+  const listRes = http.get(`${BASE_URL}/api/pagamento`, { tags: { operation: 'list' } });
+  check(listRes, {
     'GET list 200': (r) => r.status === 200,
   }) || errors.add(1);
 
-  sleep(0.1 + Math.random() * 1); // Menos sleep = mais agressivo
+  sleep(0.5 + Math.random() * 2);
 }

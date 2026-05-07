@@ -1,7 +1,7 @@
 // Baseline test — carga constante para medir performance baseline
 import http from 'k6/http';
 import { check, sleep } from 'k6';
-import { Trend, Rate, Counter } from 'k6/metrics';
+import { Trend, Rate } from 'k6/metrics';
 
 const BASE_URL = __ENV.BASE_URL || 'http://pagamento.app.svc.cluster.local:8080';
 
@@ -15,12 +15,9 @@ const errors = new Rate('pagamento_errors');
 
 export const options = {
   thresholds: {
-    // Thresholds alinhados com nfr.yaml
     http_req_failed: ['rate<0.01'],
     http_req_duration: ['p(95)<300', 'p(99)<800'],
-    // Throughput mínimo
     http_reqs: ['rate>=50'],
-    // Erros de negócio
     pagamento_errors: ['rate<0.05'],
   },
   scenarios: {
@@ -34,7 +31,7 @@ export const options = {
 };
 
 // IDs capturados para operações de GET
-let productIds = [];
+let pagamentoIds = [];
 
 export default function () {
   // Operações de leitura (70%)
@@ -48,13 +45,13 @@ export default function () {
     // Extrair IDs para busca individual
     try {
       const ids = JSON.parse(listRes.body).map((p) => p.id);
-      if (ids.length > 0) productIds = ids.slice(0, 5);
+      if (ids.length > 0) pagamentoIds = ids.slice(0, 5);
     } catch (e) { /* ignore */ }
   }
 
   // Busca por ID (15%)
-  if (productIds.length > 0 && Math.random() < 0.15) {
-    const id = productIds[Math.floor(Math.random() * productIds.length)];
+  if (pagamentoIds.length > 0 && Math.random() < 0.15) {
+    const id = pagamentoIds[Math.floor(Math.random() * pagamentoIds.length)];
     const getRes = http.get(`${BASE_URL}/api/pagamento/${id}`, { tags: { operation: 'get' } });
     endpointDurations.get.add(getRes.timings.duration);
     check(getRes, {
@@ -65,11 +62,9 @@ export default function () {
   // Criação (10%)
   if (Math.random() < 0.1) {
     const createRes = http.post(`${BASE_URL}/api/pagamento`, JSON.stringify({
-      nome: `Produto ${Date.now()}`,
-      descricao: 'Produto de teste de carga',
-      preco: Math.random() * 1000 + 10,
-      categoria: 'Teste',
-      quantidadeEstoque: Math.floor(Math.random() * 100),
+      pedidoId: '550e8400-e29b-41d4-a716-446655440000',
+      valor: 99.90,
+      metodoPagamento: 'PIX',
     }), {
       headers: { 'Content-Type': 'application/json' },
       tags: { operation: 'create' },
