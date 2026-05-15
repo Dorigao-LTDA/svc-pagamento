@@ -128,8 +128,6 @@ jobs:
     name: Deploy to AKS via ArgoCD
     needs: build-and-push
     runs-on: ubuntu-latest
-    environment:
-      name: ${{ inputs.deploy_env || 'development' }}
     steps:
       - uses: actions/checkout@v4
 
