@@ -1,4 +1,5 @@
 // Baseline test — carga constante para medir performance baseline
+// Thresholds and scenario params from __ENV (nfr.yaml via nfr-to-env.py)
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Trend, Rate } from 'k6/metrics';
@@ -13,18 +14,25 @@ const endpointDurations = {
 };
 const errors = new Rate('pagamento_errors');
 
+// Thresholds from nfr.yaml (via pre-processor)
+const ERR_RATE = parseFloat(__ENV.K6_BASELINE_THRESHOLD_HTTP_REQ_FAILED || 0.01);
+const P95_THRESH = parseInt(__ENV.K6_BASELINE_THRESHOLD_P95 || 300);
+const P99_THRESH = parseInt(__ENV.K6_BASELINE_THRESHOLD_P99 || 800);
+const THROUGHPUT_MIN = parseInt(__ENV.K6_BASELINE_THRESHOLD_THROUGHPUT || 50);
+const BIZ_ERR_RATE = parseFloat(__ENV.K6_BASELINE_THRESHOLD_BUSINESS_ERRORS || 0.05);
+
 export const options = {
   thresholds: {
-    http_req_failed: ['rate<0.01'],
-    http_req_duration: ['p(95)<300', 'p(99)<800'],
-    http_reqs: ['rate>=50'],
-    pagamento_errors: ['rate<0.05'],
+    http_req_failed: [`rate<${ERR_RATE}`],
+    http_req_duration: [`p(95)<${P95_THRESH}`, `p(99)<${P99_THRESH}`],
+    http_reqs: [`rate>=${THROUGHPUT_MIN}`],
+    pagamento_errors: [`rate<${BIZ_ERR_RATE}`],
   },
   scenarios: {
     baseline: {
       executor: 'constant-vus',
-      vus: __ENV.VUS ? parseInt(__ENV.VUS) : 10,
-      duration: __ENV.DURATION || '5m',
+      vus: __ENV.K6_BASELINE_VUS ? parseInt(__ENV.K6_BASELINE_VUS) : 10,
+      duration: __ENV.K6_BASELINE_DURATION || '5m',
       gracefulStop: '30s',
     },
   },
@@ -42,7 +50,6 @@ export default function () {
       'GET list 200': (r) => r.status === 200,
     }) || errors.add(1);
 
-    // Extrair IDs para busca individual
     try {
       const ids = JSON.parse(listRes.body).map((p) => p.id);
       if (ids.length > 0) pagamentoIds = ids.slice(0, 5);
